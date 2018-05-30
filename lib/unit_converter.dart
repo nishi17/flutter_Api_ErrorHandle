@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
@@ -6,10 +7,8 @@ import 'package:meta/meta.dart';
 import 'category.dart';
 import 'unit.dart';
 
-
 // TODO:(8 Unit 11 API) Import relevant packages
 import 'api.dart';
-
 
 const _padding = EdgeInsets.all(16.0);
 
@@ -38,16 +37,25 @@ class _UnitConverterState extends State<UnitConverter> {
   final _inputKey = GlobalKey(debugLabel: 'inputText');
   final TextEditingController _controller = new TextEditingController();
 
+  // TODO: (Unit 12 ErrorHandle) Add a flag for whether to show error UI
+  bool _showErrorUI = false;
+
   @override
   void initState() {
     super.initState();
+    _checkInternate();
     _createDropdownMenuItems();
     _setDefaults();
   }
 
+// Be sure to cancel subscription after you are done
+
   @override
   void didUpdateWidget(UnitConverter old) {
     super.didUpdateWidget(old);
+
+    _checkInternate();
+
     // We update our [DropdownMenuItem] units when we switch [Categories].
     if (old.category != widget.category) {
       _createDropdownMenuItems();
@@ -103,24 +111,33 @@ class _UnitConverterState extends State<UnitConverter> {
     return outputNum;
   }
 
-
   // TODO:(9 Unit 11 API)  If in the Currency [Category], call the API to retrieve the conversion.
   Future<void> _updateConversion() async {
     // Our API has a handy convert function, so we can use that for
     // the Currency [Category]
     if (widget.category.name == apiCategory['name']) {
-
       final api = Api();
       final conversion = await api.convert(apiCategory['route'],
           _inputValue.toString(), _fromValue.name, _toValue.name);
 
-      setState(() {
+      // TODO:(Unit 12 ErrorHandle) Check whether to show an error UI
+
+      if (conversion == null) {
+        setState(() {
+          _showErrorUI = true;
+        });
+      } else {
+        setState(() {
+          _showErrorUI = false;
+          _convertedValue = _format(conversion);
+        });
+      }
+
+      /* setState(() {
         _convertedValue = _format(conversion);
       });
-
-    }
-    else {
-
+*/
+    } else {
       // For the static units, we do the conversion ourselves
       setState(() {
         _convertedValue = _format(
@@ -218,6 +235,41 @@ class _UnitConverterState extends State<UnitConverter> {
 
   @override
   Widget build(BuildContext context) {
+
+    // TODO: (Unit 12 ErrorHandle) Build an error UI
+
+    if (widget.category.units == null ||
+        (widget.category.name == apiCategory['name'] && _showErrorUI)) {
+      return SingleChildScrollView(
+        child: Container(
+          margin: _padding,
+          padding: _padding,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16.0),
+            color: widget.category.color['error'],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 100.0,
+                color: Colors.white,
+              ),
+              Text(
+                "Oh no! We can't connect right now!",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headline.copyWith(
+                      color: Colors.white,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final input = Padding(
       padding: _padding,
       child: Column(
@@ -304,5 +356,21 @@ class _UnitConverterState extends State<UnitConverter> {
         },
       ),
     );
+  }
+
+  void _checkInternate() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        print('connected');
+        _showErrorUI = false;
+      }
+    } on SocketException catch (_) {
+      print('not connected');
+      _showErrorUI = true;
+    }
+
+
+
   }
 }

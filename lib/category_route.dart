@@ -239,9 +239,17 @@ class _CategoryRouteState extends State<CategoryRoute> {
     if (deviceOrientation == Orientation.portrait) {
       return ListView.builder(
         itemBuilder: (BuildContext context, int index) {
+
+          // TODO: (Unit 12 ErrorHandle) You may want to make the Currency [Category] not tappable
+          // while it is loading, or if there an error.
+          var _category = _categories[index];
+
           return CategoryTile(
             category: _categories[index],
-            onTap: _onCategoryTap,
+            onTap: /*_onCategoryTap,*/
+            _category.name == apiCategory['name'] && _category.units.isEmpty
+                ? null
+                : _onCategoryTap,
           );
         },
         itemCount: _categories.length,
@@ -272,7 +280,7 @@ class _CategoryRouteState extends State<CategoryRoute> {
     final listView = Padding(
 
       padding: EdgeInsets.only(
-        left:8.0,
+        left:10.0,
         right: 8.0,
         bottom: 48.0,
       ),
